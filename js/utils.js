@@ -1,0 +1,35 @@
+"use strict";
+window.Nexo = window.Nexo || {};
+Nexo.util = (() => {
+  const pad = n => String(n).padStart(2, "0");
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+  const localDate = s => new Date(`${s || today()}T12:00:00`);
+  const dateStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const addDays = (s,n) => { const d=localDate(s); d.setDate(d.getDate()+n); return dateStr(d); };
+  const monthKey = s => (s || today()).slice(0,7);
+  const firstDay = s => `${monthKey(s)}-01`;
+  const daysInMonth = (y,m) => new Date(y,m,0).getDate();
+  const uid = () => typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `n${Date.now()}${Math.random().toString(36).slice(2)}`;
+  const e = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money = v => new Intl.NumberFormat('es-CO',{style:'currency',currency:(Nexo.store?.data.settings.currency||'COP'),maximumFractionDigits:0}).format(Number(v)||0);
+  const num = (v,d=0) => new Intl.NumberFormat('es-CO',{maximumFractionDigits:d}).format(Number(v)||0);
+  const longDate = s => new Intl.DateTimeFormat('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(localDate(s));
+  const shortDate = s => new Intl.DateTimeFormat('es-CO',{day:'numeric',month:'short'}).format(localDate(s));
+  const monthName = s => new Intl.DateTimeFormat('es-CO',{month:'long',year:'numeric'}).format(localDate(`${monthKey(s)}-01`));
+  const percent = (v,total) => total>0 ? Math.max(0,Math.min(100,Math.round((Number(v)||0)/total*100))) : 0;
+  const sum = (items,fn) => items.reduce((a,x)=>a+(Number(fn(x))||0),0);
+  const clamp = (n,min,max) => Math.min(max,Math.max(min,n));
+  const randomColor = x => ['#7b64e8','#00a9a0','#ed9b53','#e3688b','#4f90da','#8d9b49'][Math.abs(String(x).split('').reduce((a,c)=>a+c.charCodeAt(0),0))%6];
+  const download = (name,content,mime) => { const blob=new Blob([content],{type:mime||'application/octet-stream'}), url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000); };
+  const option = (value,text,selected) => `<option value="${e(value)}" ${String(value)===String(selected)?'selected':''}>${e(text)}</option>`;
+  const linkedLabel = (type,id) => {
+    const data=Nexo.store.data;
+    const map={finance:['transactions','Movimiento'],planner:['tasks','Tarea'],nutrition:['meals','Comida'],notes:['notes','Nota']};
+    if(!map[type])return 'Sin vínculo';
+    const obj=data[map[type][0]].find(x=>x.id===id);
+    return obj ? (obj.title || obj.name || obj.description || map[type][1]) : 'Elemento eliminado';
+  };
+  const noteCount = (type,id) => Nexo.store.data.notes.filter(n=>n.linkType===type&&n.linkId===id).length;
+  const linkButton = (type,id) => `<button type="button" class="text-link" data-action="note-for" data-type="${e(type)}" data-id="${e(id)}" title="Crear nota relacionada">▤ Nota${noteCount(type,id)?` (${noteCount(type,id)})`:''}</button>`;
+  return {pad,today,localDate,dateStr,addDays,monthKey,firstDay,daysInMonth,uid,e,money,num,longDate,shortDate,monthName,percent,sum,clamp,randomColor,download,option,linkedLabel,noteCount,linkButton};
+})();
